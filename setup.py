@@ -67,7 +67,8 @@ cutlass_sources = ["csrc/eetpy.cpp",
                    "csrc/cutlass_kernels/cutlass_heuristic.cc",
                    "csrc/cutlass_kernels/cutlass_preprocessors.cc",
                    "csrc/utils/logger.cc",
-                   "csrc/utils/cuda_utils.cc"]
+                   "csrc/utils/cuda_utils.cc"
+                   ]
 for item in cutlass_sources:
     cutlass_sources[cutlass_sources.index(item)] = os.path.join(current_dir, item)
 sources = cutlass_sources
@@ -86,6 +87,7 @@ ext_modules.append(
         name="EETQ",
         sources=sources,
         include_dirs=include_paths,
+        # libraries=['cublas', 'cudart', 'cudnn', 'curand', 'nvToolsExt'],
         extra_compile_args={
             "cxx": ['-g',
                     '-std=c++17',

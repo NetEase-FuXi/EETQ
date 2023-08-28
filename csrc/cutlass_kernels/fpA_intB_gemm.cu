@@ -18,6 +18,20 @@ namespace fastertransformer
     return ActivationType::InvalidType;
   }
 
+  void gemm_fp16_int(const half *A,
+                     const uint8_t *B,
+                     const half *weight_scales,
+                     half *C,
+                     int m, int n, int k,
+                     char *workspace_ptr,
+                     size_t workspace_bytes,
+                     cudaStream_t stream)
+  {
+    CutlassFpAIntBGemmRunner<half, uint8_t> runner;
+    runner.gemm(A, B, weight_scales,
+                C, m, n, k, workspace_ptr, workspace_bytes, stream);
+  }
+
   template <typename WeightType>
   void gemm_fp16_int_bias_act(const half *A,
                               const WeightType *B,

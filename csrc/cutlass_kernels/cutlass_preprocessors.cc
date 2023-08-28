@@ -21,8 +21,6 @@
 
 namespace fastertransformer {
 
-enum class QuantType { INT8_WEIGHT_ONLY, PACKED_INT4_WEIGHT_ONLY };
-
 int get_bits_in_quant_type(QuantType quant_type) {
   switch (quant_type) {
   case QuantType::INT8_WEIGHT_ONLY:
@@ -513,13 +511,11 @@ void preprocess_weights_for_mixed_gemm(int8_t *preprocessed_quantized_weight,
 
   std::vector<int8_t> src_buf(num_bytes);
   std::vector<int8_t> dst_buf(num_bytes);
-  std::copy(row_major_quantized_weight, row_major_quantized_weight + num_bytes,
-            src_buf.begin());
+  std::copy(row_major_quantized_weight, row_major_quantized_weight + num_bytes, src_buf.begin());
 
   // Works on row major data, so issue this permutation first.
   if (details.uses_imma_ldsm) {
-    permute_B_rows_for_mixed_gemm(dst_buf.data(), src_buf.data(), shape,
-                                  quant_type, arch);
+    permute_B_rows_for_mixed_gemm(dst_buf.data(), src_buf.data(), shape, quant_type, arch);
     src_buf.swap(dst_buf);
   }
 
@@ -529,13 +525,11 @@ void preprocess_weights_for_mixed_gemm(int8_t *preprocessed_quantized_weight,
   }
 
   if (details.columns_interleaved > 1) {
-    interleave_column_major_tensor(dst_buf.data(), src_buf.data(), shape,
-                                   quant_type, details);
+    interleave_column_major_tensor(dst_buf.data(), src_buf.data(), shape, quant_type, details);
     src_buf.swap(dst_buf);
   }
 
-  add_bias_and_interleave_quantized_tensor_inplace(src_buf.data(), num_elts,
-                                                   quant_type);
+  add_bias_and_interleave_quantized_tensor_inplace(src_buf.data(), num_elts, quant_type);
   std::copy(src_buf.begin(), src_buf.end(), preprocessed_quantized_weight);
 }
 
@@ -548,5 +542,162 @@ void preprocess_weights(int8_t *preprocessed_quantized_weight,
                                     row_major_quantized_weight, {rows, cols},
                                     qtype, arch);
 }
+
+/*
+    Arguments:
+      input_weight_ptr - the weight tensor to be quantized. Must be 2-D or 3-D and of type FP16.
+
+      quant_type - the type of the output quantization weight.
+
+    This function does symmetric quantization on 2-D or 3-D tensors. It uses the full int range and assumes the
+    zero-point is zero and will automatically construct the scales.
+
+    It always quantizes the last axis of the tensor. For 3-D tensors, it operates in "batched" mode where the tensor is
+    viewed as a stack of matrices and a scale is produced for each column of every matrix.
+
+Outputs
+    processed_quantized_weight - quantized AND processed weight for GEMM. This MUST be used with the CUTLASS GEMM
+    unprocessed_quantized_weight - quantized but unprocessed weights. Useful for reference checking.
+    scale_ptr - scales for the quantized weight.
+
+    Note that the returned quantized_weights will be preprocessed in a way to accelerate the mixed type GEMM. The data
+    layout may not make sense if printed.
+
+    Shapes:
+      quant_type == int8:
+        If weight is a [m,n] matrix, quantized_weights will have shape [m,n] and scales of shape [n]
+        If weight is a [b,m,n] tensor, unprocessed_quantized_weight will have shape [b,m,n] and scales of shape [b,n]
+      quant_type == int4:
+        If weight is a [m,n] matrix, quantized_weights will have shape [m, ceil(n/2)] and scales of shape [n]
+        If weight is a [b,m,n] tensor, unprocessed_quantized_weight will have shape [b,m, ceil(n/2)] and scales of shape
+          [b,n]
+
+      The quantized_weight will be of type torch.int8 and have two int4 values packed in a single byte. This is the
+      reason for halving the shape. At the time of writing this code, there was not an elegant way to handle this kind
+      of batched quantization using torch's quantized tensors (to the best of the author's knowledge). Scale tensors
+      must have a dimension of 1, which breaks the semantics we need for batched weights.
+  */
+
+template<typename ComputeType, typename WeightType>
+void symmetric_quantize(int8_t*                    processed_quantized_weight,
+                        int8_t*                    unprocessed_quantized_weight,
+                        ComputeType*               scale_ptr,
+                        const WeightType*          input_weight_ptr,
+                        const std::vector<size_t>& shape,
+                        QuantType                  quant_type)
+{
+
+    FT_CHECK_WITH_INFO(processed_quantized_weight, "Processed quantized tensor is NULL");
+    FT_CHECK_WITH_INFO(scale_ptr, "Scale output pointer is NULL");
+    FT_CHECK_WITH_INFO(input_weight_ptr, "Input weight pointer is NULL");
+
+    FT_CHECK_WITH_INFO(shape.size() == 2 || shape.size() == 3, "Shape must be 2-D or 3-D");
+    const size_t num_experts = shape.size() == 2 ? 1 : shape[0];
+    const size_t num_rows    = shape.size() == 2 ? shape[0] : shape[1];
+    const size_t num_cols    = shape.size() == 2 ? shape[1] : shape[2];
+
+    const int bits_in_type      = get_bits_in_quant_type(quant_type);
+    const int bytes_per_out_col = num_cols * bits_in_type / 8;
+
+    std::vector<int8_t> weight_buf;
+    if (unprocessed_quantized_weight == nullptr) {
+        weight_buf.resize(num_experts * num_rows * num_cols);
+        unprocessed_quantized_weight = weight_buf.data();
+    }
+
+    const int   input_mat_size     = num_rows * num_cols;
+    const int   quantized_mat_size = num_rows * bytes_per_out_col;
+    const float quant_range_scale  = 1.f / float(1 << (bits_in_type - 1));
+
+    std::vector<float> per_col_max(num_cols);
+
+    for (int expert = 0; expert < num_experts; ++expert) {
+        const WeightType* current_weight           = input_weight_ptr + expert * input_mat_size;
+        int8_t*           current_quantized_weight = unprocessed_quantized_weight + expert * quantized_mat_size;
+
+        // First we find the per column max for this expert weight.
+        for (int jj = 0; jj < num_cols; ++jj) {
+            per_col_max[jj] = 0.f;
+        }
+
+        for (int ii = 0; ii < num_rows; ++ii) {
+            const WeightType* current_weight_row = current_weight + ii * num_cols;
+            for (int jj = 0; jj < num_cols; ++jj) {
+                per_col_max[jj] = std::max(per_col_max[jj], std::abs(float(current_weight_row[jj])));
+            }
+        }
+
+        // Then, we construct the scales
+        ComputeType* current_scales = scale_ptr + expert * num_cols;
+        for (int jj = 0; jj < num_cols; ++jj) {
+            per_col_max[jj] *= quant_range_scale;
+            current_scales[jj] = ComputeType(per_col_max[jj]);
+        }
+
+        // Finally, construct the weights.
+        for (int ii = 0; ii < num_rows; ++ii) {
+            int8_t*           current_quantized_weight_row = current_quantized_weight + ii * bytes_per_out_col;
+            const WeightType* current_weight_row           = current_weight + ii * num_cols;
+            for (int jj = 0; jj < bytes_per_out_col; ++jj) {
+
+                if (quant_type == QuantType::INT8_WEIGHT_ONLY) {
+                    const float  col_scale           = per_col_max[jj];
+                    const float  weight_elt          = float(current_weight_row[jj]);
+                    const float  scaled_weight       = round(weight_elt / col_scale);
+                    const int8_t clipped_weight      = int8_t(std::max(-128.f, std::min(127.f, scaled_weight)));
+                    current_quantized_weight_row[jj] = clipped_weight;
+                }
+                else if (quant_type == QuantType::PACKED_INT4_WEIGHT_ONLY) {
+
+                    // We will pack two int4 elements per iteration of the inner loop.
+                    int8_t packed_int4s = 0;
+                    for (int packed_idx = 0; packed_idx < 2; ++packed_idx) {
+                        const int input_idx = 2 * jj + packed_idx;
+                        if (input_idx < num_cols) {
+                            const float  col_scale      = per_col_max[input_idx];
+                            const float  weight_elt     = float(current_weight_row[input_idx]);
+                            const float  scaled_weight  = round(weight_elt / col_scale);
+                            int          int_weight     = int(scaled_weight);
+                            const int8_t clipped_weight = std::max(-8, std::min(7, int_weight));
+
+                            // Kill the sign extension bits (hence 0x0F mask) then shift to upper bits
+                            // if packing the second int4 and or the bits into the final result.
+                            packed_int4s |= ((clipped_weight & 0x0F) << (4 * packed_idx));
+                        }
+                    }
+                    current_quantized_weight_row[jj] = packed_int4s;
+                }
+                else {
+                    FT_CHECK_WITH_INFO(false, "Unsupported quantization type");
+                }
+            }
+        }
+    }
+    const int arch = fastertransformer::getSMVersion();
+    preprocess_weights_for_mixed_gemm(processed_quantized_weight, unprocessed_quantized_weight, shape, quant_type, arch);
+}
+
+template void
+symmetric_quantize<half, float>(int8_t*, int8_t*, half*, const float*, const std::vector<size_t>&, QuantType);
+
+template void
+symmetric_quantize<half, half>(int8_t*, int8_t*, half*, const half*, const std::vector<size_t>&, QuantType);
+
+
+template<typename ComputeType, typename WeightType>
+void symmetric_quantize(int8_t*                    processed_quantized_weight,
+                        ComputeType*               scale_ptr,
+                        const WeightType*          input_weight_ptr,
+                        const std::vector<size_t>& shape,
+                        QuantType                  quant_type)
+{
+    symmetric_quantize(processed_quantized_weight, nullptr, scale_ptr, input_weight_ptr, shape, quant_type);
+}
+
+template void symmetric_quantize<float, float>(int8_t*, float*, const float*, const std::vector<size_t>&, QuantType);
+
+template void symmetric_quantize<half, float>(int8_t*, half*, const float*, const std::vector<size_t>&, QuantType);
+
+template void symmetric_quantize<half, half>(int8_t*, half*, const half*, const std::vector<size_t>&, QuantType);
 
 } // namespace fastertransformer
