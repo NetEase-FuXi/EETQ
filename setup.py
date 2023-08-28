@@ -69,9 +69,9 @@ cutlass_sources = ["csrc/eetpy.cpp",
                    "csrc/utils/logger.cc",
                    "csrc/utils/cuda_utils.cc"
                    ]
-for item in cutlass_sources:
-    cutlass_sources[cutlass_sources.index(item)] = os.path.join(current_dir, item)
 sources = cutlass_sources
+for item in sources:
+    sources[sources.index(item)] = os.path.join(current_dir, item)
 
 include_paths = []
 include_paths.append(cpp_extension.include_paths(cuda=True))    # cuda path
