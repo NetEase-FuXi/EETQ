@@ -26,7 +26,7 @@ class W8A16Linear(nn.Module):
             self.bias = None
 
     @classmethod
-    def from_linear(cls, linear, scales=None, init_only=False):
+    def from_torch(cls, linear, scales=None, init_only=False):
         eet_qlinear = cls(linear.in_features, linear.out_features, bias=linear.bias is not None)
         if init_only:   # just prepare for loading weights
             return eet_qlinear
@@ -35,7 +35,7 @@ class W8A16Linear(nn.Module):
             eet_qlinear.bias = linear.bias.clone().half()
         
         data_type = linear.weight.dtype
-        int8_weight = torch.t(linear.weight).contiguous()
+        int8_weight = torch.t(linear.weight).contiguous().cpu()
         if data_type == torch.int8:
             assert scales is not None   # need scales for real quantization
             int8_weight = preprocess_weights(int8_weight)
@@ -56,8 +56,8 @@ class W8A16Linear(nn.Module):
         return eet_qlinear
 
     @torch.no_grad()
-    def forward(self, input, output):
-        w8_a16_gemm(input, self.qweight, self.weight_scales, output)
+    def forward(self, input):
+        output = w8_a16_gemm(input, self.qweight, self.weight_scales)
         output = output + self.bias if self.bias is not None else output
         return output
 

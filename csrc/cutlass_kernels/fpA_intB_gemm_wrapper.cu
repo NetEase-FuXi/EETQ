@@ -127,15 +127,14 @@ torch::Tensor preprocess_weights_cuda(torch::Tensor &origin_weight,
 
 torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
                                        torch::Tensor &weight,
-                                       torch::Tensor &scale, 
-                                       torch::Tensor &output)
+                                       torch::Tensor &scale)
 {
     c10::cuda::CUDAGuard device_guard(input.device());
     const int m = input.size(-2);
     const int k = input.size(-1);
     const int n = weight.size(-1);
-    // auto options = torch::TensorOptions().dtype(input.dtype()).device(input.device());
-    // torch::Tensor output = torch::empty({m, n}, options);
+    auto options = torch::TensorOptions().dtype(input.dtype()).device(input.device());
+    torch::Tensor output = torch::empty({m, n}, options);
 
     const ft::half *input_ptr = reinterpret_cast<ft::half *>(input.data_ptr());
     const uint8_t *weight_ptr = reinterpret_cast<const uint8_t *>(weight.data_ptr());

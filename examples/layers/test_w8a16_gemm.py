@@ -34,15 +34,15 @@ if __name__ == '__main__':
     print("processed_torch_weights: ", processed_torch_weights)
     processed_torch_weights = processed_torch_weights.cuda()
     torch_weight_scales = torch_weight_scales.cuda()
-    w8_a16_gemm(input, processed_torch_weights, torch_weight_scales, output_tensor)
-    print("out1: ", output_tensor)
+    output = w8_a16_gemm(input, processed_torch_weights, torch_weight_scales)
+    print("out1: ", output)
 
     # test preprocess_weights
     processed_w = preprocess_weights(ref_torch_weights)
     print("processed_w: ", processed_w)
     processed_w = processed_w.cuda()
-    w8_a16_gemm(input, processed_w, torch_weight_scales, output_tensor)
-    print("out2: ", output_tensor)
+    output = w8_a16_gemm(input, processed_w, torch_weight_scales)
+    print("out2: ", output)
 
     # test torch matmul
     ref_torch_weights = ref_torch_weights.to(torch.float16).cuda()

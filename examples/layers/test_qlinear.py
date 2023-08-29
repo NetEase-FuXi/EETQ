@@ -22,14 +22,23 @@ if __name__ == '__main__':
     N = 4096
     K = 1024
     torch_linear = nn.Linear(K, N, bias=False, dtype=torch.float16)
-    eet_linear = W8A16Linear.from_linear(torch_linear, scales=None, init_only=False)
+    eet_linear = W8A16Linear.from_torch(torch_linear, scales=None, init_only=False)
     input = torch.rand(M, K, dtype=torch.float16).cuda()
-    output = torch.zeros(M, N, dtype=torch.float16).cuda()
-    eet_linear(input, output)
+    # output = torch.zeros(M, N, dtype=torch.float16).cuda()
+    output = eet_linear(input)
     print("eet out: ", output)
 
     # test torch matmul
     torch_linear = torch_linear.cuda().to(torch.float16)
     output_torch = torch_linear(input)
     print("out torch: ", output_torch)
+
+    print(torch.allclose(output, output_torch, atol=1e-2))
+
+    print("torch state_dict: ", torch_linear.state_dict())
+    print("eet state_dict: ", eet_linear.state_dict())
+
+    torch.save(torch_linear.state_dict(), "/root/project/eetq/examples/tests/torch_linear.pt")
+    # torch.save(eet_linear.state_dict(), "/root/project/eetq/examples/tests/eet_linear.pt")
+    torch.save(eet_linear, "/root/project/eetq/examples/tests/eet_linear_model.pt")
 

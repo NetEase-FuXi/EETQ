@@ -11,5 +11,4 @@ torch::Tensor preprocess_weights_cuda(torch::Tensor &ori_weight,
 
 torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
                                        torch::Tensor &weight,
-                                       torch::Tensor &scale,
-                                       torch::Tensor &output);
+                                       torch::Tensor &scale);
