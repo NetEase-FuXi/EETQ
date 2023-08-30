@@ -39,6 +39,7 @@ if __name__ == '__main__':
     print("eet state_dict: ", eet_linear.state_dict())
 
     torch.save(torch_linear.state_dict(), "/root/project/eetq/examples/tests/torch_linear.pt")
-    # torch.save(eet_linear.state_dict(), "/root/project/eetq/examples/tests/eet_linear.pt")
+    torch.save(torch_linear, "/root/project/eetq/examples/tests/torch_linear_model.pt")
+    torch.save(eet_linear.state_dict(), "/root/project/eetq/examples/tests/eet_linear.pt")
     torch.save(eet_linear, "/root/project/eetq/examples/tests/eet_linear_model.pt")
 

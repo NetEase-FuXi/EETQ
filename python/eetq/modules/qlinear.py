@@ -27,7 +27,7 @@ class W8A16Linear(nn.Module):
 
     @classmethod
     def from_torch(cls, linear, scales=None, init_only=False):
-        eet_qlinear = cls(linear.in_features, linear.out_features, bias=linear.bias is not None)
+        eet_qlinear = cls(linear.in_features, linear.out_features, bias=linear.bias is not None, dev=linear.weight.device)
         if init_only:   # just prepare for loading weights
             return eet_qlinear
 

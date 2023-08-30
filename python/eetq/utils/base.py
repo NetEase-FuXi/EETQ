@@ -45,3 +45,11 @@ def append_str_prefix(x, prefix):
 
 def get_named_linears(module):
     return {name: m for name, m in module.named_modules() if isinstance(m, nn.Linear)}
+
+def find_layers(module, layers=[nn.Linear], name=''):
+    if type(module) in layers:
+        return {name: module}
+    res = {}
+    for name1, child in module.named_children():
+        res.update(find_layers(child, layers=layers, name=name + '.' + name1 if name != '' else name1))
+    return res

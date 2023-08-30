@@ -7,32 +7,29 @@ from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 
 from ..modules.qlinear import W8A16Linear
 from .base import set_op_by_name, get_named_linears
+from .mapping import get_submodule_name
 
 
-def make_eet_qlinear(module, names, device):
-    if isinstance(module, W8A16Linear):
-        return
-    for attr in dir(module):
-        tmp = getattr(module, attr)
-
-
-
-def replace_with_eet_qlinear(model, device="cuda:0"):
-    layers = model.model.layers
-    for i in tqdm(range(len(layers)), desc="replace with eet weight quantize only linear..."):
+def replace_with_eet_qlinear(model, init_only=False, target_model="llama", device="cuda:0"):
+    layers = eval(get_submodule_name(model, name=target_model, sub_name="decoder"))
+    for i in tqdm(range(len(layers)), desc="replace with eet weight quantize only linear..." + ("(init only)" if init_only else "")):
         layer = layers[i]
         named_linears = get_named_linears(layer)            # linear dict
         for name, linear in named_linears.items():
             if linear.weight.dtype == torch.float16:
-                q_linear = W8A16Linear.from_torch(linear, scales=None, init_only=False)
-            elif linear.weight.dtype == torch.int8:
+                q_linear = W8A16Linear.from_torch(linear, scales=None, init_only=init_only)
+            elif linear.weight.dtype == torch.int8:         # bitsandbytes int8
                 scales = torch.div(linear.state_dict()["SCB"], 127.0)
-                q_linear = W8A16Linear.from_torch(linear, scales=scales, init_only=False)
+                q_linear = W8A16Linear.from_torch(linear, scales=scales, init_only=init_only)
             set_op_by_name(layer, name, q_linear)
-            
-            # del linear
-            linear.cpu()
-            del linear
-            torch.cuda.empty_cache()
-            gc.collect()
+
+            if not init_only:
+                # del linear
+                linear.cpu()
+                del linear
+                torch.cuda.empty_cache()
+                gc.collect()
+            else:
+                del linear
+                gc.collect()
 

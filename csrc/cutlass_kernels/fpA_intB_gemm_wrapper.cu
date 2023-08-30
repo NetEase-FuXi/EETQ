@@ -145,15 +145,39 @@ torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
     // void *ptr = nullptr;
     // char *workspace_ptr = workspace_size > 0 ? (char *)cudaMalloc((void **)&ptr, workspace_size) : nullptr;
 
-    ft::gemm_fp16_int_bias_act(
+    ft::gemm_fp16_int(
         input_ptr,
         weight_ptr,
         scale_ptr,
-        nullptr,
         output_ptr,
-        std::nullopt,
         m, n, k,
+        nullptr,
         0,
+        0);
+    return output;
+}
+
+torch::Tensor w8_a16_gemm_forward_cuda_(torch::Tensor &input,
+                                        torch::Tensor &weight,
+                                        torch::Tensor &scale,
+                                        torch::Tensor &output)
+{
+    c10::cuda::CUDAGuard device_guard(input.device());
+    const int m = input.size(-2);
+    const int k = input.size(-1);
+    const int n = weight.size(-1);
+
+    const ft::half *input_ptr = reinterpret_cast<ft::half *>(input.data_ptr());
+    const uint8_t *weight_ptr = reinterpret_cast<const uint8_t *>(weight.data_ptr());
+    const ft::half *scale_ptr = reinterpret_cast<ft::half *>(scale.data_ptr());
+    ft::half *output_ptr = reinterpret_cast<ft::half *>(output.data_ptr());
+
+    ft::gemm_fp16_int(
+        input_ptr,
+        weight_ptr,
+        scale_ptr,
+        output_ptr,
+        m, n, k,
         nullptr,
         0,
         0);
