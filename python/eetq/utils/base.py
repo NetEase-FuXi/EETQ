@@ -2,6 +2,18 @@ import torch
 import torch.nn as nn
 
 
+def find_submodule(module, sub_name):
+    res = None
+    if hasattr(module, sub_name):
+        return getattr(module, sub_name)
+    else:
+        for name, m in module.named_children():
+            res = find_submodule(m, sub_name)
+            if res is not None:
+                return res
+    raise ValueError(f"Cannot find submodule {sub_name} in module {module}")
+
+
 def get_op_by_name(module, op_name):
     # get the op by its name relative to the module
     for name, m in module.named_modules():
@@ -19,8 +31,10 @@ def set_op_by_name(layer, name, new_module):
                 mod_ = mod_[int(levels[l_idx])]
             else:
                 mod_ = getattr(mod_, levels[l_idx])
+        delattr(mod_, levels[-1])
         setattr(mod_, levels[-1], new_module)
     else:
+        delattr(layer, name)
         setattr(layer, name, new_module)
 
 
@@ -46,10 +60,6 @@ def append_str_prefix(x, prefix):
 def get_named_linears(module):
     return {name: m for name, m in module.named_modules() if isinstance(m, nn.Linear)}
 
-def find_layers(module, layers=[nn.Linear], name=''):
-    if type(module) in layers:
-        return {name: module}
-    res = {}
-    for name1, child in module.named_children():
-        res.update(find_layers(child, layers=layers, name=name + '.' + name1 if name != '' else name1))
-    return res
+
+def get_named_layers(module, layers=[nn.Linear]):
+    return {name: m for name, m in module.named_modules() if type(m) in layers}

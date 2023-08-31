@@ -3,7 +3,7 @@ Mappings = {
 }
 
 transformers_llama_mapping = {
-    "decoder": "model.model.layers",
+    "decoder": "layers",
     "decoder_layer": "LlamaDecoderLayer",
     "attention": "LlamaAttention",
     "mlp": "LlamaMLP",
@@ -11,8 +11,9 @@ transformers_llama_mapping = {
     "embedding": "embed_tokens",
 }
 
-def get_submodule_name(module, name, sub_name):
+
+def structure_mapping(module, name):
     if name == "":
-        return module
-    node = eval(Mappings[name])
-    return node[sub_name]
+        return name
+    mapping = eval(Mappings[name])
+    return mapping
