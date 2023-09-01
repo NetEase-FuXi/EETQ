@@ -130,11 +130,12 @@ torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
                                        torch::Tensor &scale)
 {
     c10::cuda::CUDAGuard device_guard(input.device());
-    const int m = input.size(-2);
+    // TORCH_CHECK(input.dim() == 3 || input.dim() == 2, "Invalid input dim: ", input.dim());
+    const int m = input.dim() == 2 ? input.size(0) : input.size(0) * input.size(1);
     const int k = input.size(-1);
     const int n = weight.size(-1);
     auto options = torch::TensorOptions().dtype(input.dtype()).device(input.device());
-    torch::Tensor output = torch::empty({m, n}, options);
+    torch::Tensor output = input.dim() == 2 ? torch::empty({m, n}, options) : torch::empty({input.size(0), input.size(1), n}, options);
 
     const ft::half *input_ptr = reinterpret_cast<ft::half *>(input.data_ptr());
     const uint8_t *weight_ptr = reinterpret_cast<const uint8_t *>(weight.data_ptr());
@@ -160,12 +161,12 @@ torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
 torch::Tensor w8_a16_gemm_forward_cuda_(torch::Tensor &input,
                                         torch::Tensor &weight,
                                         torch::Tensor &scale,
-                                        torch::Tensor &output)
+                                        torch::Tensor &output,
+                                        const int m,
+                                        const int n,
+                                        const int k)
 {
     c10::cuda::CUDAGuard device_guard(input.device());
-    const int m = input.size(-2);
-    const int k = input.size(-1);
-    const int n = weight.size(-1);
 
     const ft::half *input_ptr = reinterpret_cast<ft::half *>(input.data_ptr());
     const uint8_t *weight_ptr = reinterpret_cast<const uint8_t *>(weight.data_ptr());
