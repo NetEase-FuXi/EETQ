@@ -69,7 +69,10 @@ cutlass_sources = ["csrc/eetpy.cpp",
                    "csrc/utils/logger.cc",
                    "csrc/utils/cuda_utils.cc"
                    ]
-sources = cutlass_sources
+custom_sources = ["csrc/embedding_kernels/pos_encoding_kernels.cu",
+                  "csrc/layernorm_kernels/layernorm.cu"
+                  ]
+sources = cutlass_sources + custom_sources
 for item in sources:
     sources[sources.index(item)] = os.path.join(current_dir, item)
 

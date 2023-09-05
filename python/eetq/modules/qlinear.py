@@ -10,7 +10,7 @@ import math
 from EETQ import quant_weights, preprocess_weights, w8_a16_gemm
 
 
-def preprocess_weights(weight, scales=None):
+def quantize_and_preprocess_weights(weight, scales=None):
     data_type = weight.dtype
     int8_weight = torch.t(weight).contiguous().cpu()
     if data_type == torch.int8:
@@ -47,7 +47,7 @@ class W8A16Linear(nn.Module):
         if linear.bias is not None:
             eet_qlinear.bias = linear.bias.clone().half()
 
-        int8_weight, scales = preprocess_weights(linear.weight, scales)
+        int8_weight, scales = quantize_and_preprocess_weights(linear.weight, scales)
 
         eet_qlinear.qweight = int8_weight.cuda()
         eet_qlinear.weight_scales = scales.half().cuda()
