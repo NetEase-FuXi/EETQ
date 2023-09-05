@@ -35,7 +35,7 @@ def replace_with_eet_fp16_fused_attn(model):
 
         qkv_layer.bias = Parameter(bias, requires_grad=False) if bias is not None else None
 
-        attn = EETLlamaAttention(m.hidden_size, m.num_heads, qkv_layer, m.o_proj, dev=m.device)
+        attn = EETLlamaAttention(m.hidden_size, m.num_heads, qkv_layer, m.o_proj, dev=m.q_proj.weight.device)
 
         if '.' in name:
             parent_name = name.rsplit('.', 1)[0]
