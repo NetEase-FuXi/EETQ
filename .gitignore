@@ -12,3 +12,5 @@ build/
 *.pyc
 *.log
 *.so
+*.ckpt
+*.pt
