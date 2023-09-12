@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.nn.parameter import Parameter
+from tqdm import tqdm
 from transformers.models.llama.modeling_llama import LlamaAttention
 
 from .quantizer import replace_with_eet_qlinear
@@ -18,7 +19,7 @@ def eet_accelerator(model, quantize=False, fused_attn=False, dev="cuda:0"):
 
 
 def replace_with_eet_fp16_fused_attn(model):
-    for name, m in model.named_modules():
+    for name, m in tqdm(list(model.named_modules()), desc="replace with eet fp16 fused attn..."):
         if not isinstance(m, LlamaAttention):
             continue
 

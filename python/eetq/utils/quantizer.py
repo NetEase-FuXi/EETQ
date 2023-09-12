@@ -1,12 +1,11 @@
+import gc
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-import gc
 from transformers import AutoModelForCausalLM
-import peft.tuners.lora as lora
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 
-from ..modules.qlinear import W8A16Linear, W8A16LoraLinear
+from ..modules.qlinear import W8A16Linear
 from .base import set_op_by_name, get_named_linears, get_named_layers, find_submodule
 from .mapping import structure_mapping
 
