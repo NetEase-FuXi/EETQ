@@ -2,6 +2,27 @@
 
 EETQ(Easy & Efficient Quantization for Transformers)是一款针对transformer模型的量化工具
 
+## 目录
+
+- [EETQ](#eetq)
+  - [目录](#目录)
+  - [特点](#特点)
+  - [快速开始](#快速开始)
+    - [环境](#环境)
+    - [安装](#安装)
+    - [使用](#使用)
+
+## 特点
+
+- 高性能的INT8权重训练后量化算子
+
+* 提取自[FasterTransformer](https://github.com/NVIDIA/FasterTransformer/tree/main/src/fastertransformer/kernels/cutlass_kernels/fpA_intB_gemm)的高性能GEMM内核，可以更加方便集成至您的项目中
+
+* 无需量化感知训练
+
+- 使用[Flash-Attention V2](https://github.com/Dao-AILab/flash-attention)优化attention的推理性能
+
+- 简单易用，只需一行代码即可适配您的PyTorch模型
 ## 快速开始
 
 ### 环境
@@ -12,11 +33,11 @@ EETQ(Easy & Efficient Quantization for Transformers)是一款针对transformer�
 * torch:>=1.14.0 
 * transformers:>=4.27.0
 
-镜像：hub.fuxi.netease.com/danlu-modelserving/eet:eet_llama_v2
-
 ### 安装
+推荐使用Dockerfile.
 ```bash
-$ git clone https://gitlab.fuxi.netease.com:8081/zhaosida/eetq.git
+$ git clone https://github.com/NetEase-FuXi/EETQ.git
+$ git submodule update --init --recursive
 $ pip install .
 ```
 

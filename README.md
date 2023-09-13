@@ -3,20 +3,22 @@
 Easy & Efficient Quantization for Transformers
 
 ## Table of Contents
-- [EETQ](#EETQ)
-- [Features](#features)
-- [Getting started](#getting-started)
+- [EETQ](#eetq)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Getting started](#getting-started)
     - [Environment](#environment)
     - [Installation](#installation)
     - [Usage](#usage)
-- [Examples](#examples)
-- [Performance](#performance)
+  - [Examples](#examples)
+  - [Performance](#performance)
 
 ## Features
-- W8A16 Quantization
-- Flash Attention V2
-- Cutlass gemm/kernels Acceleration
-- Save and load EETQ quantized model
+- INT8 weight only PTQ
+  * High-performance GEMM kernels from FasterTransformer, [original code](https://github.com/NVIDIA/FasterTransformer/tree/main/src/fastertransformer/kernels/cutlass_kernels/fpA_intB_gemm)
+  * No need for quantization training
+- Optimized attention layer using [Flash-Attention V2](https://github.com/Dao-AILab/flash-attention)
+- Easy to use, adapt to your pytorch model with one line of code
 
 
 ## Getting started
@@ -29,15 +31,16 @@ Easy & Efficient Quantization for Transformers
 * torch:>=1.14.0 
 * transformers:>=4.27.0
 
-Mirror: hub.fuxi.netease.com/danlu-modelserving/eet:eet_llama_v2
+The above environment is the minimum configuration, and it is best to use a newer version.
 
 ### Installation
-https://gitlab.fuxi.netease.com:8081/zhaosida/eetq.git
+Recommend using Dockerfile.
+
 
 ```bash
-$ git clone https://github.com/NetEase-FuXi/EET.git
+$ git clone https://github.com/NetEase-FuXi/EETQ.git
+$ git submodule update --init --recursive
 $ pip install .
-
 ```
 
 ### Usage
@@ -73,10 +76,6 @@ res = model.generate(...)
 
 Model:
 - [examples/models/llama_transformers_example.py](examples/models/llama_transformers_example.py)
-
-Layer:
-- [examples/layers/test_qlinear.py](examples/layers/test_qlinear.py)
-- [examples/layers/test_w8a16_gemm.py](examples/layers/test_w8a16_gemm.py)
 
 ## Performance
 
