@@ -58,8 +58,15 @@ def append_str_prefix(x, prefix):
 
 
 def get_named_linears(module):
-    return {name: m for name, m in module.named_modules() if isinstance(m, nn.Linear)}
+    return {name: m for name, m in module.named_modules() if isinstance(m, nn.Linear) and "lm_head" not in name}
 
 
 def get_named_layers(module, layers=[nn.Linear]):
     return {name: m for name, m in module.named_modules() if type(m) in layers}
+
+def find_layers(module, include=[nn.Linear], exclude=["lm_head"]):
+    res = {}
+    for name, m in module.named_modules():
+        if type(m) in include and not any([e in name for e in exclude]):
+            res.update({name: m})
+    return res
