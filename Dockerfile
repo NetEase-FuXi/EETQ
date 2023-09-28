@@ -17,4 +17,5 @@ RUN MAX_JOBS=4 pip install flash-attn --no-build-isolation
 WORKDIR /workspace
 RUN git clone https://github.com/NetEase-FuXi/EETQ.git
 WORKDIR /workspace/EETQ
+RUN git submodule update --init --recursive
 RUN pip install .

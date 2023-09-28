@@ -45,22 +45,6 @@ def check_cuda_torch_binary_vs_bare_metal(cuda_dir):
 
 ext_modules = []
 
-# ext_modules.append(
-#     CUDAExtension(
-#         name="EETQ.awq",
-#         sources=[
-#             "csrc/awq_kernels/awq_api.cpp",
-#             "csrc/awq_kernels/gemm_cuda_gen.cu",
-#             "csrc/awq_kernels/layernorm.cu",
-#             "csrc/awq_kernels/pos_encoding_kernels.cu",
-#         ],
-#         extra_compile_args={
-#             "cxx": ["-g", "-O3", "-fopenmp", "-lgomp", "-std=c++17"],
-#             "nvcc": ["-O3", "-std=c++17"],
-#         }
-#     )
-# )
-
 cutlass_sources = ["csrc/eetpy.cpp",
                    "csrc/cutlass_kernels/fpA_intB_gemm_wrapper.cu",
                    "csrc/cutlass_kernels/fpA_intB_gemm.cu",
@@ -98,8 +82,7 @@ ext_modules.append(
                     '-O3',
                     '-fopenmp',
                     '-lgomp'],
-            "nvcc": ['-t 8',
-                     '-O3',
+            "nvcc": ['-O3',
                      '-std=c++17',
                      '-U__CUDA_NO_HALF_OPERATORS__',
                      '-U__CUDA_NO_HALF_CONVERSIONS__',

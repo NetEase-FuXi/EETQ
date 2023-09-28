@@ -39,13 +39,26 @@ Recommend using Dockerfile.
 
 ```bash
 $ git clone https://github.com/NetEase-FuXi/EETQ.git
+$ cd EETQ/
 $ git submodule update --init --recursive
 $ pip install .
 ```
+If your machine has less than 96GB of RAM and lots of CPU cores, `ninja` might
+run too many parallel compilation jobs that could exhaust the amount of RAM. To
+limit the number of parallel compilation jobs, you can set the environment
+variable `MAX_JOBS`:
+```bash
+$ MAX_JOBS=4 pip install .
+```
 
 ### Usage
+1. Quantize torch model
+```python
+from eetq.utils import eet_quantize
+eet_quantize(torch_model)
+```
 
-1. Quantize float16 model from huggingface.co and speed up inference
+2. Quantize torch model and optimize with flash attention
 ```python
 ...
 model = AutoModelForCausalLM.from_pretrained(model_name, config=config, torch_dtype=torch.float16)
@@ -55,21 +68,12 @@ model.to("cuda:0")
 
 # inference
 res = model.generate(...)
-
 ```
 
-2. Support save and load quantized EETQ model
-```python
-model = AutoModelForCausalLM.from_pretrained(model_name, config=config, torch_dtype=torch.float16)
-from eetq.utils import eet_accelerator
-eet_accelerator(model, quantize=True, fused_attn=True, dev="cuda:0")
-# save
-torch.save(model, "eetq_llama13B_model.pt")
-
-# load
-model = torch.load("eetq_llama13B_model_fused_attn_v2.pt",map_location="cuda:0")
-res = model.generate(...)
-
+3. Use EETQ in TGI([text-generation-inference](https://github.com/huggingface/text-generation-inference))
+see [this](https://github.com/huggingface/text-generation-inference/pull/1018)
+```bash
+--quantize eetq
 ```
 
 ## Examples
@@ -81,9 +85,4 @@ Model:
 
 - llama-13b (test on 3090)
 
-| Methods | Sequence length (tokens) | Latency (ms) | GPU Memory (GB) |
-| :----: | :----: | :----: | :----: |
-| original | input=7,output=32 |  |  |
-| quantize=False, fused_attn=True | input=7,output=32 |  |  |
-| quantize=True, fused_attn=False | input=7,output=32 | 0.996 | 14.061 |
-| quantize=True, fused_attn=True | input=7,output=32 | 0.721 | 13.956 |
+<img src="./docs/images/benchmark.png" style="zoom:50%;" />
