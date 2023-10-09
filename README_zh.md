@@ -29,7 +29,7 @@ EETQ(Easy & Efficient Quantization for Transformers)是一款针对transformer�
 
 ### 环境
 
-* cuda:>=11.1
+* cuda:>=11.4
 * python:>=3.8 
 * gcc:>= 7.4.0 
 * torch:>=1.14.0 

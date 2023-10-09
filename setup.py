@@ -43,6 +43,15 @@ def check_cuda_torch_binary_vs_bare_metal(cuda_dir):
             "You can try commenting out this check (at your own risk)."
         )
 
+_, bare_cuda_version = get_cuda_bare_metal_version(CUDA_HOME)
+if bare_cuda_version >= Version("11.4"):
+    os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6+PTX"
+else:
+    raise RuntimeError(
+        "EETQ is only supported on CUDA 11.4 and above.  "
+        "Your version of CUDA is: {}\n".format(bare_cuda_version)
+    )
+
 ext_modules = []
 
 cutlass_sources = ["csrc/eetpy.cpp",
