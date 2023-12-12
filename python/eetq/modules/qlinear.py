@@ -49,8 +49,8 @@ class W8A16Linear(nn.Module):
 
         int8_weight, scales = quantize_and_preprocess_weights(linear.weight, scales)
 
-        eet_qlinear.qweight = int8_weight.cuda()
-        eet_qlinear.weight_scales = scales.half().cuda()
+        eet_qlinear.qweight = int8_weight.to(linear.weight.device)
+        eet_qlinear.weight_scales = scales.half().to(linear.weight.device)
 
         return eet_qlinear
 
