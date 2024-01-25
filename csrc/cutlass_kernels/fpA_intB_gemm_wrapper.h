@@ -1,6 +1,7 @@
 #include <torch/extension.h>
 #include <vector>
 
+#define SMALL_M_FAST_PATH 4
 std::vector<torch::Tensor>
 symmetric_quantize_last_axis_of_tensor(torch::Tensor &weight,
                                        py::object &quant_type,
