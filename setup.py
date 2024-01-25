@@ -65,7 +65,18 @@ cutlass_sources = ["csrc/eetpy.cpp",
 custom_sources = ["csrc/embedding_kernels/pos_encoding_kernels.cu",
                   "csrc/layernorm_kernels/layernorm.cu"
                   ]
-sources = cutlass_sources + custom_sources
+
+tensorrt_llm_sources = ["csrc/weightOnlyBatchedGemv/kernelLauncher.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs1Int4b.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs1Int8b.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs2Int4b.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs2Int8b.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs3Int4b.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs3Int8b.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs4Int4b.cu",
+                        "csrc/weightOnlyBatchedGemv/weightOnlyBatchedGemvBs4Int8b.cu"]
+
+sources = cutlass_sources + custom_sources + tensorrt_llm_sources
 for item in sources:
     sources[sources.index(item)] = os.path.join(current_dir, item)
 

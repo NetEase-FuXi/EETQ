@@ -17,7 +17,7 @@ def set_random_seed(seed):
     np.random.seed(seed)
 
 if __name__ == '__main__':
-    M = 128*8
+    M = 1
     N = 13824
     K = 5120
 
@@ -54,8 +54,10 @@ if __name__ == '__main__':
 
     torch.cuda.synchronize()
     t1 = time.perf_counter()
-    for i in range(100):
-        i += 1
+    for i in range(500):
+        output = w8_a16_gemm(input, processed_torch_weights, torch_weight_scales)
     torch.cuda.synchronize()
+    print(output)
+    print(torch.sum(output - out_torch))
     t2 = time.perf_counter()
-    print("time: ", t2 - t1)
+    print("time: ", (t2 - t1) / 100)
