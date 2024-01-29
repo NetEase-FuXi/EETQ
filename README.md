@@ -76,6 +76,11 @@ see [this](https://github.com/huggingface/text-generation-inference/pull/1018)
 --quantize eetq
 ```
 
+4. Use EETQ in [LoRAX](https://github.com/predibase/lorax). See [docs](https://predibase.github.io/lorax/guides/quantization/#eetq) here.
+```bash
+lorax-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ...
+```
+
 ## Examples
 
 Model:
