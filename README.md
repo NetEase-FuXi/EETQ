@@ -14,6 +14,7 @@ Easy & Efficient Quantization for Transformers
   - [Performance](#performance)
 
 ## Features
+- **New**🔥: [Implement gemv](https://github.com/huggingface/text-generation-inference/pull/1502) in w8a16, performance improvement 10~30%. 
 - INT8 weight only PTQ
   * High-performance GEMM kernels from FasterTransformer, [original code](https://github.com/NVIDIA/FasterTransformer/tree/main/src/fastertransformer/kernels/cutlass_kernels/fpA_intB_gemm)
   * No need for quantization training
@@ -70,10 +71,9 @@ model.to("cuda:0")
 res = model.generate(...)
 ```
 
-3. Use EETQ in TGI([text-generation-inference](https://github.com/huggingface/text-generation-inference))
-see [this](https://github.com/huggingface/text-generation-inference/pull/1018)
+3. Use EETQ in [TGI](https://github.com/huggingface/text-generation-inference). see [this PR](https://github.com/huggingface/text-generation-inference/pull/1068).
 ```bash
---quantize eetq
+text-generation-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ...
 ```
 
 4. Use EETQ in [LoRAX](https://github.com/predibase/lorax). See [docs](https://predibase.github.io/lorax/guides/quantization/#eetq) here.
@@ -89,5 +89,5 @@ Model:
 ## Performance
 
 - llama-13b (test on 3090)
-
-<img src="./docs/images/benchmark.png" style="zoom:50%;" />
+prompt=1024, max_new_tokens=50
+<img src="./docs/images/benchmark.jpg" style="zoom:50%;" />

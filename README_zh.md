@@ -15,6 +15,7 @@ EETQ(Easy & Efficient Quantization for Transformers)是一款针对transformer�
   - [性能测试](#性能测试)
 
 ## 特点
+- 新特性🔥: [引入gemv算子](https://github.com/huggingface/text-generation-inference/pull/1502) 提升性能10%~30%. 
 
 - 高性能的INT8权重训练后量化算子
 
@@ -68,10 +69,14 @@ res = model.generate(...)
 
 ```
 
-3. 在TGI中使用eetq进行量化加速
-[PR链接](https://github.com/huggingface/text-generation-inference/pull/1018)
+3. 在[TGI](https://github.com/huggingface/text-generation-inference)中使用eetq进行量化加速，[PR链接](https://github.com/huggingface/text-generation-inference/pull/1068)
 ```bash
---quantize eetq
+text-generation-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ...
+```
+
+4. 在[LoRAX](https://github.com/predibase/lorax)中使用EETQ. 参考[文档](https://predibase.github.io/lorax/guides/quantization/#eetq).
+```bash
+lorax-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ...
 ```
 
 ## 参考用例
@@ -81,5 +86,5 @@ res = model.generate(...)
 ## 性能测试
 
 - llama-13b (test on 3090)
-
-<img src="./docs/images/benchmark.png" style="zoom:50%;" />
+prompt=1024, max_new_tokens=50
+<img src="./docs/images/benchmark.jpg" style="zoom:50%;" />
