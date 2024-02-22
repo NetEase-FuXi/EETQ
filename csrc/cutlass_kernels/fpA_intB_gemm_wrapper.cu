@@ -148,6 +148,8 @@ torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
     // char *workspace_ptr = workspace_size > 0 ? (char *)cudaMalloc((void **)&ptr, workspace_size) : nullptr;
     const bool use_cuda_kernel = m <= SMALL_M_FAST_PATH;
     // const bool use_cuda_kernel = false; 
+    const cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
     if(use_cuda_kernel){
         tensorrt_llm::kernels::WeightOnlyActivationType weight_only_act_type = tensorrt_llm::kernels::WeightOnlyActivationType::FP16;
         tensorrt_llm::kernels::WeightOnlyQuantType weight_only_quant_type = tensorrt_llm::kernels::WeightOnlyQuantType::Int8b;
@@ -155,7 +157,7 @@ torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
             reinterpret_cast<half *>(input.data_ptr()), nullptr, nullptr, reinterpret_cast<half *>(output.data_ptr()), m, n, k, 0, weight_only_quant_type,
             tensorrt_llm::kernels::WeightOnlyType::PerChannel,
             tensorrt_llm::kernels::WeightOnlyActivationFunctionType::Identity, weight_only_act_type};
-        tensorrt_llm::kernels::weight_only_batched_gemv_launcher(params, 0); // stream is set default
+        tensorrt_llm::kernels::weight_only_batched_gemv_launcher(params, stream);
     }
     else
         ft::gemm_fp16_int(
@@ -166,7 +168,7 @@ torch::Tensor w8_a16_gemm_forward_cuda(torch::Tensor &input,
             m, n, k,
             nullptr,
             0,
-            0);
+            stream);
     return output;
 }
 
@@ -185,6 +187,7 @@ torch::Tensor w8_a16_gemm_forward_cuda_(torch::Tensor &input,
     const uint8_t *weight_ptr = reinterpret_cast<const uint8_t *>(weight.data_ptr());
     const ft::half *scale_ptr = reinterpret_cast<ft::half *>(scale.data_ptr());
     ft::half *output_ptr = reinterpret_cast<ft::half *>(output.data_ptr());
+    const cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
     ft::gemm_fp16_int(
         input_ptr,
@@ -194,6 +197,6 @@ torch::Tensor w8_a16_gemm_forward_cuda_(torch::Tensor &input,
         m, n, k,
         nullptr,
         0,
-        0);
+        stream);
     return output;
 }
