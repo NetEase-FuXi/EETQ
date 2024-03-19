@@ -65,8 +65,6 @@ def replace_fused_gateup(layer, name, new_module):
 
     
 def replace_split_qkv(layer, name, old_module, index_map):
-    import pdb
-    pdb.set_trace()
     device = old_module.qweight.device
     q_weight = old_module.qweight[:, index_map[0]: index_map[1]]
     k_weight = old_module.qweight[:, index_map[1]: index_map[2]]
