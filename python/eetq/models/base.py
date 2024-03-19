@@ -219,131 +219,6 @@ class BaseEETQForCausalLM(nn.Module):
             quant_config=quant_config,
         )
 
-    @classmethod
-    def from_quantized(
-        self,
-        model_path: Annotated[str, Doc("A Huggingface path or local path to a model.")],
-        model_type: Annotated[str, Doc("The model type, loaded from config.json.")],
-        model_filename: Annotated[
-            str, Doc("Load a specific model's filename by specifying this argument.")
-        ] = "",
-        max_seq_len: Annotated[
-            int,
-            Doc(
-                "The maximum sequence cached sequence length of the model. Larger values may increase loading time and memory usage."
-            ),
-        ] = None,
-        torch_dtype: Annotated[
-            torch.dtype,
-            Doc(
-                "The dtype to load the model as. May not work with other values than float16."
-            ),
-        ] = torch.float16,
-        trust_remote_code: Annotated[
-            bool,
-            Doc(
-                "Useful for Huggingface repositories that have not been integrated into transformers yet."
-            ),
-        ] = True,
-        safetensors: Annotated[
-            bool, Doc("Whether to download/load safetensors instead of torch weights.")
-        ] = True,
-        fuse_layers: Annotated[
-            bool,
-            Doc(
-                "Whether to use fused/optimized combination of layers for increased speed."
-            ),
-        ] = True,
-        device_map: Annotated[
-            Union[str, Dict],
-            Doc(
-                "A device map that will be passed onto the model loading method from transformers."
-            ),
-        ] = "balanced",
-        offload_folder: Annotated[
-            str,
-            Doc("The folder ot offload the model to."),
-        ] = None,
-        **config_kwargs: Annotated[
-            Dict,
-            Doc(
-                "Additional kwargs that are passed to the config during initialization."
-            ),
-        ],
-    ):
-        """A method for initialization of a quantized model, usually in INT4."""
-        # [STEP 1-2] Load weights path and configs
-        model_weights_path, config, quant_config = self._load_config(
-            self,
-            model_path,
-            model_filename,
-            safetensors,
-            trust_remote_code,
-            max_seq_len=max_seq_len,
-            **config_kwargs,
-        )
-
-        target_cls_name = TRANSFORMERS_AUTO_MAPPING_DICT[config.model_type]
-        target_cls = getattr(transformers, target_cls_name)
-
-        # [STEP 3] Load model
-        with init_empty_weights():
-            model = target_cls.from_config(
-                config=config,
-                torch_dtype=torch_dtype,
-                trust_remote_code=trust_remote_code,
-            )
-
-        # Prepare WQLinear layers, replace nn.Linear
-        self._load_quantized_modules(
-            self,
-            model,
-            quant_config,
-            quant_config.version,
-            use_exllama=use_exllama,
-            use_exllama_v2=use_exllama_v2,
-        )
-
-        model.tie_weights()
-
-        # loads the weights into modules and distributes
-        # across available devices automatically
-        load_checkpoint_and_dispatch(
-            model,
-            checkpoint=model_weights_path,
-            device_map=device_map,
-            no_split_module_classes=[self.layer_type],
-            offload_folder=offload_folder,
-            dtype=torch_dtype,
-        )
-
-        # Dispath to devices
-        if fuse_layers:
-            self.fuse_layers(model)
-
-        if quant_config.version == "marlin":
-            model = marlin_post_init(model)
-
-        elif use_exllama:
-            # creates q4 handle
-            model = exllama_post_init(model)
-        elif use_exllama_v2:
-            # creates q4 handle and allocates scratch spaces wrt max_input_len and max_batch_size
-            model = exllamav2_post_init(
-                model,
-                max_input_len=max_seq_len or 2048,
-                max_batch_size=int(os.getenv("AWQ_BATCH_SIZE", 1)),
-            )
-
-        return self(
-            model,
-            model_type,
-            is_quantized=True,
-            config=config,
-            quant_config=quant_config,
-            processor=None,
-        )
-
     def _load_config(
         self,
         model_path,
@@ -369,7 +244,7 @@ class BaseEETQForCausalLM(nn.Module):
             model_weights_path = model_path
 
         # [STEP 2] Load config and set sequence length
-        # TODO: Create BaseAWQConfig class
+        # TODO: Create BaseEETQConfig class
         quant_config = EETQConfig.from_pretrained(model_path)
 
         # Load model config and set max generation length
