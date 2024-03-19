@@ -1,2 +1,2 @@
 from .llama import *
-from .auto import *
+from .baichuan import *

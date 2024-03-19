@@ -52,6 +52,30 @@ variable `MAX_JOBS`:
 $ MAX_JOBS=4 pip install .
 ```
 
+### Support [vllm](https://github.com/vllm-project/vllm)
+
+1. Quantize torch model and save
+
+```python
+from eetq import AutoEETQForCausalLM
+from transformers import AutoTokenizer
+
+model_name = "/path/to/your/model"
+quant_path = "/path/to/quantized/model"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoEETQForCausalLM.from_pretrained(model_name)
+model.quantize(quant_path)
+tokenizer.save_pretrained(quant_path)
+```
+
+2. Load quantized model in vllm
+
+```
+python -m vllm.entrypoints.openai.api_server --model /path/to/quantized/model  --quantization eetq --trust-remote-code
+```
+
+
+
 ### Usage
 1. Quantize torch model
 ```python

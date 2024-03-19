@@ -97,8 +97,6 @@ class BaseEETQForCausalLM(nn.Module):
         eet_quantize(self.model)
         self.is_quantized = True
         self.split_layers()
-        import pdb
-        pdb.set_trace()
         self.save_quantized(save_dir)
 
     def fuse_layers(self):

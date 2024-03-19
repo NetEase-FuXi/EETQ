@@ -1,10 +1,11 @@
 import os
 from transformers import AutoConfig
-from eetq.models import *
+from eetq.models import LlamaEETQForCausalLM, BaichuanEETQForCausalLM
 from eetq.models.base import BaseEETQForCausalLM
 
 EETQ_CAUSAL_LM_MODEL_MAP = {
     "llama": LlamaEETQForCausalLM,
+    "baichuan": BaichuanEETQForCausalLM
 }
 
 def check_and_get_model_type(model_dir, trust_remote_code=True):
