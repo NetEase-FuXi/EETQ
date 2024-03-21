@@ -129,6 +129,127 @@ def replace_split_gateup(layer, name, old_module, index_map):
     setattr(mod_, 'up_proj', up)
 
 
+def split_tp_column(layer, name, old_module, tp):
+    device = old_module.weight.device
+    levels = name.split('.')
+    mod_ = layer
+    for l_idx in range(len(levels)-1):
+        if levels[l_idx].isdigit():
+            mod_ = mod_[int(levels[l_idx])]
+        else:
+            mod_ = getattr(mod_, levels[l_idx])
+    tp_linear = []
+    weight = old_module.weight
+    step = weight.shape[0] // tp
+    
+    assert step * tp == weight.shape[0]
+    for i in range(tp):
+        current_tp_linear = nn.Linear(step, weight.shape[1])
+        
+        if "qkv" in levels[-1] or "W_pack" in levels:
+            hidden_size = weight.shape[0] // 3
+            start_idx = i * step // 3
+            end_idx = (i + 1) * step // 3
+            weights = [weight[start_idx: end_idx, :], weight[hidden_size + start_idx: hidden_size + end_idx, :], weight[2 * hidden_size + start_idx: 2 * hidden_size + end_idx, :]]
+            current_tp_linear.weight = nn.Parameter(torch.cat(weights, dim=0), requires_grad=False)
+        elif "gateup" in levels[-1]:
+            hidden_size = weight.shape[0] // 2
+            start_idx = i * step // 2
+            end_idx = (i + 1) * step // 2
+            weights = [weight[start_idx: end_idx, :], weight[hidden_size + start_idx: hidden_size + end_idx, :]]
+            current_tp_linear.weight = nn.Parameter(torch.cat(weights, dim=0), requires_grad=False)
+        else:
+            raise ValueError("Incorrect layer to split")
+
+        setattr(mod_, f'{levels[-1]}_tp{i}', current_tp_linear)
+        
+    delattr(mod_, levels[-1])
+
+def split_tp_row(layer, name, old_module, tp):
+    device = old_module.weight.device
+    levels = name.split('.')
+    mod_ = layer
+    for l_idx in range(len(levels)-1):
+        if levels[l_idx].isdigit():
+            mod_ = mod_[int(levels[l_idx])]
+        else:
+            mod_ = getattr(mod_, levels[l_idx])
+
+    weight = old_module.weight
+    step = weight.shape[1] // tp
+    assert step * tp == weight.shape[1]
+    for i in range(tp):
+        current_tp_linear = nn.Linear(weight.shape[1], step)
+        current_tp_linear.weight = nn.Parameter(weight[:, i * step: (i + 1) * step], requires_grad=False)
+        setattr(mod_, f'{levels[-1]}_tp{i}', current_tp_linear)
+        
+    delattr(mod_, levels[-1])
+
+
+def replace_tp(layer, name, new_module, tp):
+    levels = name.split('.')
+    mod_ = layer
+    for l_idx in range(len(levels)-1):
+        if levels[l_idx].isdigit():
+            mod_ = mod_[int(levels[l_idx])]
+        else:
+            mod_ = getattr(mod_, levels[l_idx])
+    
+    for i in range(tp):
+        current_name = levels[-1] + f"_tp{i}"
+        delattr(mod_, current_name)
+    
+    setattr(mod_, levels[-1], new_module)
+
+
+def merge_tp_handler(model, all_tp, s, is_column):
+    num_tp = len(all_tp[0])
+    for _, tp in enumerate(all_tp):
+        name = s.format(_)
+        
+        dim = 1 if is_column else 0
+        
+        if "qkv_proj" in name or "W_pack" in name:
+            hidden_size = tp[0].qweight.shape[dim] // 3
+            q_qweight = torch.cat([x.qweight[:, :hidden_size] for x in tp], dim=dim)  
+            k_qweight = torch.cat([x.qweight[:, hidden_size : hidden_size * 2] for x in tp], dim=dim)  
+            v_qweight = torch.cat([x.qweight[:, hidden_size * 2: ] for x in tp], dim=dim)  
+            
+            
+            q_scales = torch.cat([x.weight_scales[:hidden_size] for x in tp])        
+            k_scales = torch.cat([x.weight_scales[hidden_size: hidden_size * 2] for x in tp])
+            v_scales = torch.cat([x.weight_scales[hidden_size * 2: ] for x in tp])
+
+            qweight = [q_qweight, k_qweight, v_qweight]
+            weight_scales = [q_scales, k_scales, v_scales]
+            
+        elif "gateup_proj" in name:
+            hidden_size = tp[0].qweight.shape[dim] // 2
+            gate_qweight = torch.cat([x.qweight[:, :hidden_size] for x in tp], dim=dim)              
+            up_qweight = torch.cat([x.qweight[:, hidden_size: hidden_size * 2] for x in tp], dim=dim)  
+            
+            gate_scales = torch.cat([x.weight_scales[:hidden_size] for x in tp])    
+            up_scales = torch.cat([x.weight_scales[hidden_size: hidden_size * 2] for x in tp])
+
+            qweight = [gate_qweight, up_qweight]
+            weight_scales = [gate_scales, up_scales]
+            
+        elif "o_proj" in name or "down_proj" in name:
+            qweight = [x.qweight for x in tp]
+            weight_scales = [x.weight_scales for x in tp]
+        else:
+            raise ValueError("Incorrect layer to merge")
+        
+        qweight = torch.cat(qweight, dim=dim)
+        weight_scales = torch.cat(weight_scales)
+
+        merged_weight = W8A16Linear(qweight.shape[0], qweight.shape[1])
+        merged_weight.qweight = qweight
+        merged_weight.weight_scales = weight_scales
+        
+        replace_tp(model, name, merged_weight, num_tp)
+
+
 
 def get_op_name(module, op):
     # get the name of the op relative to the module

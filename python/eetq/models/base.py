@@ -74,7 +74,8 @@ class BaseEETQForCausalLM(nn.Module):
     @torch.no_grad()
     def quantize(
         self,
-        save_dir: str
+        save_dir: str,
+        tp: int = 1,
     ):
         """
         The main quantization function that you can use to quantize your model.
@@ -93,11 +94,13 @@ class BaseEETQForCausalLM(nn.Module):
         model.quantize(tokenizer, quant_config)
         ```
         """
-        self.fuse_layers()
+        self.fuse_layers(tp)
         eet_quantize(self.model)
         self.is_quantized = True
         self.split_layers()
+        print("[EET][INFO] saving model ...")
         self.save_quantized(save_dir)
+        
 
     def fuse_layers(self):
         pass
