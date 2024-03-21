@@ -1,5 +1,6 @@
 import sys
 import warnings
+import io
 import os
 import re
 import ast
@@ -13,10 +14,15 @@ import torch
 from torch.utils import cpp_extension
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension, CUDA_HOME
 
-__version__ = "1.0.0-beta.0"
+__version__ = "1.0.0"
 
 # ninja build does not work unless include_dirs are abs path
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
+
+def read(filename):
+    with io.open(filename, mode="r", encoding='utf-8') as fd:
+        return fd.read()
 
 def get_cuda_bare_metal_version(cuda_dir):
     raw_output = subprocess.check_output([cuda_dir + "/bin/nvcc", "-V"], universal_newlines=True)
@@ -45,7 +51,7 @@ def check_cuda_torch_binary_vs_bare_metal(cuda_dir):
 
 _, bare_cuda_version = get_cuda_bare_metal_version(CUDA_HOME)
 if bare_cuda_version >= Version("11.4"):
-    os.environ["TORCH_CUDA_ARCH_LIST"] = "7.0;7.5;8.0;8.6;8.9+PTX"
+    os.environ["TORCH_CUDA_ARCH_LIST"] = "7.0;7.5;8.0;8.6+PTX"
 else:
     raise RuntimeError(
         "EETQ is only supported on CUDA 11.4 and above.  "
@@ -120,6 +126,11 @@ setup(
     version=__version__,
     author="zhaosida, zhuangzhong",
     author_email="zhaosida@corp.netease.com, zhuangzhong@corp.netease.com",
+    description="Easy and efficient quantization for transformer",
+    long_description=read("README.md"),
+    long_description_content_type='text/markdown',
+    url="https://github.com/NetEase-FuXi/EETQ",
+    home_page="https://github.com/NetEase-FuXi/EETQ",
     package_dir={"": "python"},
     packages=find_packages("python"),
     ext_modules=ext_modules,
