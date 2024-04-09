@@ -1,11 +1,12 @@
 import os
 from transformers import AutoConfig
-from eetq.models import LlamaEETQForCausalLM, BaichuanEETQForCausalLM
+from eetq.models import *
 from eetq.models.base import BaseEETQForCausalLM
 
 EETQ_CAUSAL_LM_MODEL_MAP = {
     "llama": LlamaEETQForCausalLM,
-    "baichuan": BaichuanEETQForCausalLM
+    "baichuan": BaichuanEETQForCausalLM,
+    "gemma": GemmaEETQForCausalLM
 }
 
 def check_and_get_model_type(model_dir, trust_remote_code=True):
@@ -21,7 +22,7 @@ class AutoEETQForCausalLM:
                                'AutoEETQForCausalLM.from_quantized or AutoEETQForCausalLM.from_pretrained')
     
     @classmethod
-    def from_pretrained(self, model_path, trust_remote_code=True, safetensors=False,
+    def from_pretrained(self, model_path, trust_remote_code=True, safetensors=True,
                               device_map=None, **model_init_kwargs) -> BaseEETQForCausalLM:
         model_type = check_and_get_model_type(model_path, trust_remote_code)
 
