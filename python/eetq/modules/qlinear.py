@@ -61,6 +61,35 @@ class W8A16Linear(nn.Module):
         return output
 
 
+class EETQLinear(nn.Module):
+    def __init__(self, in_features, out_features, bias=True, device="cuda:0"):
+        super().__init__()
+
+        self.in_features = in_features
+        self.out_features = out_features
+
+        self.register_buffer("weight", torch.zeros((in_features, out_features), dtype=torch.int8, device=device))
+
+        if bias:
+            self.register_buffer("bias", torch.zeros((out_features), dtype=torch.float16, device=device))
+        else:
+            self.bias = None
+
+    def register(self, buffer_name, tensor):
+        self.register_buffer(buffer_name, tensor)
+
+    def register_scale(self, device):
+        out_features = self.weight.shape[-1]
+        weight_scale = torch.zeros((out_features), dtype=torch.float16, device=device)
+        self.register_buffer("weight_scales", weight_scale)
+
+    @torch.no_grad()
+    def forward(self, input):
+        output = w8_a16_gemm(input, self.weight, self.weight_scales)
+        output = output + self.bias if self.bias is not None else output
+        return output
+
+
 class W8A16LoraLinear(nn.Module):
     def __init__(
         self,
