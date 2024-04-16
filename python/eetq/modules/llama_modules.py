@@ -12,9 +12,8 @@ try:
     from flash_attn import flash_attn_varlen_qkvpacked_func, flash_attn_varlen_kvpacked_func
     from flash_attn import flash_attn_varlen_func
     use_flash = True
-    print("[EET][INFO] use flash attention")
 except:
-    print("[EET][INFO] use default attention")
+    pass
 
 
 class EETRotaryEmbedding(nn.Module):
