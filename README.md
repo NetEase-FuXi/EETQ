@@ -52,9 +52,13 @@ variable `MAX_JOBS`:
 $ MAX_JOBS=4 pip install .
 ```
 
-### Support [vllm](https://github.com/vllm-project/vllm)
-
-1. Quantize torch model and save
+### Usage
+1. Quantize torch model
+```python
+from eetq.utils import eet_quantize
+eet_quantize(torch_model)
+```
+Quantize torch model and save
 
 ```python
 from eetq import AutoEETQForCausalLM
@@ -66,21 +70,6 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoEETQForCausalLM.from_pretrained(model_name)
 model.quantize(quant_path)
 tokenizer.save_pretrained(quant_path)
-```
-
-2. Load quantized model in vllm
-
-```
-python -m vllm.entrypoints.openai.api_server --model /path/to/quantized/model  --quantization eetq --trust-remote-code
-```
-
-
-
-### Usage
-1. Quantize torch model
-```python
-from eetq.utils import eet_quantize
-eet_quantize(torch_model)
 ```
 
 2. Quantize torch model and optimize with flash attention
@@ -103,6 +92,12 @@ text-generation-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ..
 4. Use EETQ in [LoRAX](https://github.com/predibase/lorax). See [docs](https://predibase.github.io/lorax/guides/quantization/#eetq) here.
 ```bash
 lorax-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ...
+```
+
+5. Load quantized model in vllm (doing)
+Support [vllm](https://github.com/vllm-project/vllm)
+```
+python -m vllm.entrypoints.openai.api_server --model /path/to/quantized/model  --quantization eetq --trust-remote-code
 ```
 
 ## Examples
