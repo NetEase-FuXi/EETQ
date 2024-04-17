@@ -61,7 +61,7 @@ class W8A16Linear(nn.Module):
         return output
 
 
-class EETQLinear(nn.Module):
+class EetqLinear(nn.Module):
     def __init__(self, in_features, out_features, bias=True, device="cuda:0"):
         super().__init__()
 
