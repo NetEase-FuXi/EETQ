@@ -53,7 +53,21 @@ $ MAX_JOBS=4 pip install .
 ```
 
 ### Usage
-1. Quantize torch model
+1. Use EETQ in [transformers](https://github.com/huggingface/transformers).
+```python
+from transformers import AutoModelForCausalLM, EetqConfig
+path = "/path/to/model"
+quantization_config = EetqConfig("int8")
+model = AutoModelForCausalLM.from_pretrained(path, device_map="auto", quantization_config=quantization_config)
+```
+A quantized model can be saved via "saved_pretrained" and be reused again via the "from_pretrained".
+```python
+quant_path = "/path/to/save/quantized/model"
+model.save_pretrained(quant_path)
+model = AutoModelForCausalLM.from_pretrained(quant_path, device_map="auto")
+```
+
+2. Quantize torch model
 ```python
 from eetq.utils import eet_quantize
 eet_quantize(torch_model)
@@ -72,7 +86,7 @@ model.quantize(quant_path)
 tokenizer.save_pretrained(quant_path)
 ```
 
-2. Quantize torch model and optimize with flash attention
+3. Quantize torch model and optimize with flash attention
 ```python
 ...
 model = AutoModelForCausalLM.from_pretrained(model_name, config=config, torch_dtype=torch.float16)
@@ -84,17 +98,17 @@ model.to("cuda:0")
 res = model.generate(...)
 ```
 
-3. Use EETQ in [TGI](https://github.com/huggingface/text-generation-inference). see [this PR](https://github.com/huggingface/text-generation-inference/pull/1068).
+4. Use EETQ in [TGI](https://github.com/huggingface/text-generation-inference). see [this PR](https://github.com/huggingface/text-generation-inference/pull/1068).
 ```bash
 text-generation-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ...
 ```
 
-4. Use EETQ in [LoRAX](https://github.com/predibase/lorax). See [docs](https://predibase.github.io/lorax/guides/quantization/#eetq) here.
+5. Use EETQ in [LoRAX](https://github.com/predibase/lorax). See [docs](https://predibase.github.io/lorax/guides/quantization/#eetq) here.
 ```bash
 lorax-launcher --model-id mistralai/Mistral-7B-v0.1 --quantize eetq ...
 ```
 
-5. Load quantized model in vllm (doing)
+6. Load quantized model in vllm (doing)
 Support [vllm](https://github.com/vllm-project/vllm)
 ```
 python -m vllm.entrypoints.openai.api_server --model /path/to/quantized/model  --quantization eetq --trust-remote-code
