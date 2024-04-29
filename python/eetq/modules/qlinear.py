@@ -94,12 +94,11 @@ class EetqLinearMMFunction(Function):
         return grad_input, None, None, None
 
 class EetqLinear(nn.Module):
-    def __init__(self, in_features, out_features, bias=True, device="cuda:0", training=False):
+    def __init__(self, in_features, out_features, bias=True, device="cuda:0"):
         super().__init__()
 
         self.in_features = in_features
         self.out_features = out_features
-        self.training = training
 
         self.register_buffer("weight", torch.zeros((in_features, out_features), dtype=torch.int8, device=device))
 
