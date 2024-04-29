@@ -87,7 +87,7 @@ class EetqLinearMMFunction(Function):
         
         if ctx.needs_input_grad[0]:
             # 2D matrix multiplication, unsqueeze to 3D
-            grad_input = grad_output.squeeze(0).mm(
+            grad_input = grad_output.squeeze(0).matmul(
                 weight.transpose(0, 1)
             ).unsqueeze(0)
 
