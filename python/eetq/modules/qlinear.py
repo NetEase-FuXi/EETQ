@@ -6,6 +6,7 @@ import torch.nn as nn
 import random
 import numpy as np
 import math
+from torch.autograd import Function
 
 from EETQ import quant_weights, preprocess_weights, w8_a16_gemm
 
@@ -60,6 +61,37 @@ class W8A16Linear(nn.Module):
         output = output + self.bias if self.bias is not None else output
         return output
 
+class EetqLinearMMFunction(Function):
+    @staticmethod
+    # ctx is the first argument to forward
+    def forward(
+        ctx,
+        x,
+        weight,
+        scales,
+        bias=None
+    ):
+        # The forward pass can use ctx.
+        ctx.save_for_backward(x, weight, scales, bias)
+        output = w8_a16_gemm(x, weight, scales)
+        output = output + bias if bias is not None else output
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, weight, scales, bias = ctx.saved_tensors
+        identity = torch.eye(weight.shape[0]).to(weight.device).to(input.dtype)
+
+        # Dequantize the weight
+        weight = w8_a16_gemm(identity, weight, scales)
+        
+        if ctx.needs_input_grad[0]:
+            # 2D matrix multiplication, unsqueeze to 3D
+            grad_input = grad_output.squeeze(0).mm(
+                weight.transpose(0, 1)
+            ).unsqueeze(0)
+
+        return grad_input, None, None, None
 
 class EetqLinear(nn.Module):
     def __init__(self, in_features, out_features, bias=True, device="cuda:0"):
@@ -83,10 +115,12 @@ class EetqLinear(nn.Module):
         weight_scale = torch.zeros((out_features), dtype=torch.float16, device=device)
         self.register_buffer("weight_scales", weight_scale)
 
-    @torch.no_grad()
     def forward(self, input):
-        output = w8_a16_gemm(input, self.weight, self.weight_scales)
-        output = output + self.bias if self.bias is not None else output
+        if self.training:
+            output = EetqLinearMMFunction.apply(input, self.weight, self.weight_scales, self.bias)
+        else:
+            with torch.no_grad():
+                output = EetqLinearMMFunction.apply(input, self.weight, self.weight_scales, self.bias)
         return output
 
 
