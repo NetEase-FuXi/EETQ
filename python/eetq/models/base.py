@@ -34,7 +34,8 @@ from ._config import EETQConfig
 TRANSFORMERS_AUTO_MAPPING_DICT = {
     "llama": "AutoModelForCausalLM",
     "baichuan": "AutoModelForCausalLM",
-    "gemma": "AutoModelForCausalLM"
+    "gemma": "AutoModelForCausalLM",
+    "qwen2": "AutoModelForCausalLM"
 }
 
 
@@ -58,6 +59,7 @@ class BaseEETQForCausalLM(nn.Module):
         self.search_result = None
         self.config: PretrainedConfig = config
         self.quant_config: dict = quant_config
+        self.exclude = ["lm_head"]
 
     def to(self, device: Annotated[str, Doc("The device to move your model to.")]):
         """A utility function for moving the model to a device."""
@@ -96,7 +98,7 @@ class BaseEETQForCausalLM(nn.Module):
         ```
         """
         self.fuse_layers(tp)
-        eet_quantize(self.model)
+        eet_quantize(self.model, exclude=self.exclude)
         self.is_quantized = True
         self.split_layers()
         print("[EET][INFO] saving model ...")

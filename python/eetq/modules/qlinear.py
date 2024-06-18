@@ -52,7 +52,6 @@ class W8A16Linear(nn.Module):
 
         eet_qlinear.qweight = int8_weight.to(linear.weight.device)
         eet_qlinear.weight_scales = scales.half().to(linear.weight.device)
-
         return eet_qlinear
 
     @torch.no_grad()

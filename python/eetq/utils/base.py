@@ -45,9 +45,7 @@ def replace_fused_qkv(layer, name, new_module):
             mod_ = mod_[int(levels[l_idx])]
         else:
             mod_ = getattr(mod_, levels[l_idx])
-    delattr(mod_, 'q_proj')
-    delattr(mod_, 'k_proj')
-    delattr(mod_, 'v_proj')
+
     setattr(mod_, levels[-1], new_module)
 
     
@@ -59,8 +57,7 @@ def replace_fused_gateup(layer, name, new_module):
             mod_ = mod_[int(levels[l_idx])]
         else:
             mod_ = getattr(mod_, levels[l_idx])
-    delattr(mod_, 'gate_proj')
-    delattr(mod_, 'up_proj')
+
     setattr(mod_, levels[-1], new_module)
 
     
@@ -94,6 +91,12 @@ def replace_split_qkv(layer, name, old_module, index_map):
             mod_ = mod_[int(levels[l_idx])]
         else:
             mod_ = getattr(mod_, levels[l_idx])
+    if mod_.q_proj.bias is not None:
+        q.bias = mod_.q_proj.bias.to(device)
+    if mod_.k_proj.bias is not None:
+        k.bias = mod_.k_proj.bias.to(device)
+    if mod_.v_proj.bias is not None:
+        v.bias = mod_.v_proj.bias.to(device)
     delattr(mod_, 'qkv_proj')
     setattr(mod_, 'q_proj', q)
     setattr(mod_, 'k_proj', k)
@@ -124,6 +127,10 @@ def replace_split_gateup(layer, name, old_module, index_map):
             mod_ = mod_[int(levels[l_idx])]
         else:
             mod_ = getattr(mod_, levels[l_idx])
+    if mod_.gate_proj.bias is not None:
+        gate.bias = mod_.gate_proj.bias.to(device)
+    if mod_.up_proj.bias is not None:
+        up.bias = mod_.up_proj.bias.to(device)
     delattr(mod_, 'gateup_proj')
     setattr(mod_, 'gate_proj', gate)
     setattr(mod_, 'up_proj', up)
