@@ -72,19 +72,6 @@ model = AutoModelForCausalLM.from_pretrained(quant_path, device_map="auto")
 from eetq.utils import eet_quantize
 eet_quantize(torch_model)
 ```
-Quantize torch model and save
-
-```python
-from eetq import AutoEETQForCausalLM
-from transformers import AutoTokenizer
-
-model_name = "/path/to/your/model"
-quant_path = "/path/to/quantized/model"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoEETQForCausalLM.from_pretrained(model_name)
-model.quantize(quant_path)
-tokenizer.save_pretrained(quant_path)
-```
 
 3. Quantize torch model and optimize with flash attention
 ```python
