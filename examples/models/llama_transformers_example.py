@@ -1,6 +1,5 @@
 import os
 import time
-import psutil
 import random
 import torch
 import numpy as np

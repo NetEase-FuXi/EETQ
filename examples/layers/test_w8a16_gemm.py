@@ -1,11 +1,7 @@
-import psutil
-import os
 import time
 import torch
-import torch.nn as nn
 import random
 import numpy as np
-import math
 
 from EETQ import quant_weights, preprocess_weights, w8_a16_gemm
 

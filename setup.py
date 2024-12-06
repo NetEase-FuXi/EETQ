@@ -14,11 +14,11 @@ import torch
 from torch.utils import cpp_extension
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension, CUDA_HOME
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # ninja build does not work unless include_dirs are abs path
 current_dir = os.path.dirname(os.path.abspath(__file__))
-
+TORCH_VERSION = str(os.getenv("TORCH_VERSION", None) or torch.__version__).split('+', maxsplit=1)[0]
 
 def read(filename):
     with io.open(filename, mode="r", encoding='utf-8') as fd:
@@ -137,7 +137,7 @@ setup(
     cmdclass={"build_ext": BuildExtension} if ext_modules else {},
     python_requires=">=3.7",
     install_requires=[
-        "torch>=2.0.1",
+        f"torch>={TORCH_VERSION}",
         "einops",
         "packaging",
         "ninja",
