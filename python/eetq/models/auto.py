@@ -6,7 +6,8 @@ from eetq.models.base import BaseEETQForCausalLM
 EETQ_CAUSAL_LM_MODEL_MAP = {
     "llama": LlamaEETQForCausalLM,
     "baichuan": BaichuanEETQForCausalLM,
-    "gemma": GemmaEETQForCausalLM
+    "gemma": GemmaEETQForCausalLM,
+    "qwen2": Qwen2EETQForCausalLM
 }
 
 def check_and_get_model_type(model_dir, trust_remote_code=True):
