@@ -87,7 +87,7 @@ for item in sources:
     sources[sources.index(item)] = os.path.join(current_dir, item)
 
 include_paths = []
-include_paths.append(cpp_extension.include_paths(cuda=True))    # cuda path
+include_paths.append(cpp_extension.include_paths(device_type='cuda'))    # cuda path
 include_paths.append(os.path.join(current_dir, 'csrc'))
 include_paths.append(os.path.join(current_dir, 'csrc/utils'))
 include_paths.append(os.path.join(current_dir, 'csrc/cutlass/include'))
