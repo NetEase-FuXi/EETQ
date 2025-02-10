@@ -33,7 +33,8 @@ from ._config import EETQConfig
 TRANSFORMERS_AUTO_MAPPING_DICT = {
     "llama": "AutoModelForCausalLM",
     "baichuan": "AutoModelForCausalLM",
-    "gemma": "AutoModelForCausalLM"
+    "gemma": "AutoModelForCausalLM",
+    "qwen2": "AutoModelForCausalLM"
 }
 
 
