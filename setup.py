@@ -69,7 +69,8 @@ cutlass_sources = ["csrc/eetpy.cpp",
                    "csrc/utils/cuda_utils.cc"
                    ]
 custom_sources = ["csrc/embedding_kernels/pos_encoding_kernels.cu",
-                  "csrc/layernorm_kernels/layernorm.cu"
+                  "csrc/layernorm_kernels/layernorm.cu",
+                  "csrc/dequantize_kernel/dequantize_kernel.cu"
                   ]
 
 tensorrt_llm_sources = ["csrc/weightOnlyBatchedGemv/kernelLauncher.cu",

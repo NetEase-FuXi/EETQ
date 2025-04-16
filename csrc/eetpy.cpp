@@ -3,6 +3,7 @@
 #include "cutlass_kernels/fpA_intB_gemm_wrapper.h"
 #include "embedding_kernels/pos_encoding.h"
 #include "layernorm_kernels/layernorm.h"
+#include "dequantize_kernel/dequantize_kernel.h"
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
@@ -17,4 +18,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
         py::arg("return_unprocessed_quantized_tensor") = false);
   m.def("rotary_embedding_neox", &rotary_embedding_neox, "Apply GPT-NeoX style rotary embedding to query and key");
   m.def("layernorm_forward", &layernorm_forward_cuda, "LayerNorm kernel");
+  m.def("dequantize_weight", &dequantize_weight_cuda, "Dequantize kernel");
 }

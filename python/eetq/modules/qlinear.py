@@ -8,7 +8,7 @@ import numpy as np
 import math
 from torch.autograd import Function
 
-from EETQ import quant_weights, preprocess_weights, w8_a16_gemm
+from EETQ import quant_weights, preprocess_weights, w8_a16_gemm, dequantize_weight
 
 
 def quantize_and_preprocess_weights(weight, scales=None):
@@ -80,15 +80,12 @@ class EetqLinearMMFunction(Function):
     @staticmethod
     def backward(ctx, grad_output):
         input, weight, scales, bias = ctx.saved_tensors
-        identity = torch.eye(weight.shape[0]).to(weight.device).to(input.dtype)
-
-        # Dequantize the weight
-        weight = w8_a16_gemm(identity, weight, scales)
-        
+        dequantized_weight = torch.zeros_like(weight, dtype=torch.float16).to(weight.device)
+        dequantize_weight(dequantized_weight, weight, scales) 
         if ctx.needs_input_grad[0]:
             # 2D matrix multiplication, unsqueeze to 3D
             grad_input = grad_output.squeeze(0).matmul(
-                weight.transpose(0, 1)
+                dequantized_weight.transpose(0, 1)
             ).unsqueeze(0)
 
         return grad_input, None, None, None
