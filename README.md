@@ -111,3 +111,7 @@ Model:
 - llama-13b (test on 3090)
 prompt=1024, max_new_tokens=50
 <img src="./docs/images/benchmark.jpg" style="zoom:50%;" />
+
+# Join Us
+![d114a086ccdebdd4fbda657abb14ee99](https://github.com/user-attachments/assets/5f2d51e8-52ba-4254-b17a-6656a1ad15e4)
+
